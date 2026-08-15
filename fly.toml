@@ -1,0 +1,9 @@
+app = "pixelcraft"
+primary_region = "iad"
+[build]
+  builder = "heroku/buildpacks:20"
+[[services]]
+  internal_port = 4200
+  protocol = "http"
+  [[services.ports]]
+    port = 80
