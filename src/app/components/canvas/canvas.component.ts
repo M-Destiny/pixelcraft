@@ -18,6 +18,10 @@ import { Tool } from '../../models/pixel';
         (mouseup)="onMouseUp()"
         (mouseleave)="onMouseUp()"
         (wheel)="onWheel($event)"
+        (touchstart)="onTouchStart($event)"
+        (touchmove)="onTouchMove($event)"
+        (touchend)="onTouchEnd($event)"
+        (touchcancel)="onTouchEnd($event)"
         [style.cursor]="cursorStyle()"
         class="border border-gray-600 bg-checkerboard"
         style="image-rendering: pixelated; touch-action: none;"
@@ -209,6 +213,110 @@ export class CanvasComponent {
     } else {
       this.svc.panBy(-e.deltaX, -e.deltaY);
     }
+  }
+
+  // Touch handlers — mirrors mouse logic for tablets/phones
+  private getTouchPoint(e: TouchEvent) {
+    const canvas = this.canvasRef.nativeElement;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0] || e.changedTouches[0];
+    const x = Math.floor((touch.clientX - rect.left - this.svc.pan().x) / (this.svc.zoom() / 10));
+    const y = Math.floor((touch.clientY - rect.top - this.svc.pan().y) / (this.svc.zoom() / 10));
+    return { x, y, clientX: touch.clientX, clientY: touch.clientY };
+  }
+
+  onTouchStart(e: TouchEvent) {
+    e.preventDefault();
+    const tool = this.svc.activeTool();
+    const point = this.getTouchPoint(e);
+
+    if (e.touches.length === 2) {
+      // Pinch-zoom: store initial distance
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      this.lastPinchDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      return;
+    }
+
+    switch (tool) {
+      case 'pencil':
+      case 'eraser':
+        this.drawing = true;
+        this.paintTouch(point);
+        break;
+      case 'fill':
+        this.floodFill(point.x, point.y);
+        break;
+      case 'eyedropper':
+        this.pickColor(point.x, point.y);
+        break;
+      case 'select':
+        this.selecting = true;
+        this.selectionStart = { x: point.x, y: point.y };
+        this.selectionBox.set({ x: point.x, y: point.y, width: 0, height: 0 });
+        break;
+      case 'pan':
+        this.panning = true;
+        this.lastPanPoint = { x: point.clientX, y: point.clientY };
+        this.cursorStyle.set('grabbing');
+        break;
+    }
+  }
+
+  onTouchMove(e: TouchEvent) {
+    e.preventDefault();
+    const point = this.getTouchPoint(e);
+
+    if (e.touches.length === 2 && this.lastPinchDist !== null) {
+      // Pinch zoom
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      const ratio = dist / this.lastPinchDist;
+      if (ratio > 1.05) this.svc.zoomIn();
+      else if (ratio < 0.95) this.svc.zoomOut();
+      this.lastPinchDist = dist;
+      return;
+    }
+
+    if (this.panning) {
+      const dx = point.clientX - this.lastPanPoint.x;
+      const dy = point.clientY - this.lastPanPoint.y;
+      this.svc.panBy(dx, dy);
+      this.lastPanPoint = { x: point.clientX, y: point.clientY };
+      return;
+    }
+
+    if (this.selecting) {
+      const minX = Math.min(this.selectionStart.x, point.x);
+      const minY = Math.min(this.selectionStart.y, point.y);
+      const maxX = Math.max(this.selectionStart.x, point.x);
+      const maxY = Math.max(this.selectionStart.y, point.y);
+      this.selectionBox.set({ x: minX, y: minY, width: maxX - minX, height: maxY - minY });
+      return;
+    }
+
+    if (this.drawing && (this.svc.activeTool() === 'pencil' || this.svc.activeTool() === 'eraser')) {
+      this.paintTouch(point);
+    }
+  }
+
+  onTouchEnd(e: TouchEvent) {
+    e.preventDefault();
+    this.drawing = false;
+    this.panning = false;
+    this.selecting = false;
+    this.lastPinchDist = null;
+    this.clearSelection();
+    this.updateCursor();
+  }
+
+  private lastPinchDist: number | null = null;
+
+  private paintTouch(point: { x: number; y: number }) {
+    const color = this.svc.activeTool() === 'eraser' ? 'transparent' : this.svc.activeColor();
+    this.svc.drawPixel(point.x, point.y, color);
+    this.redraw();
   }
 
   private paint(e: MouseEvent) {
