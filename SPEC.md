@@ -4,71 +4,195 @@
 
 ## 1. Concept & Vision
 
-PixelCraft is a browser-based pixel art editor built with Angular 17. Draw pixel art on a configurable grid, pick colors from a palette, use layer management, and export to PNG. Designed for game developers and digital artists who want a lightweight, self-hosted tool.
+PixelCraft is a browser-based pixel art editor built with Angular 17. Draw pixel art on a configurable grid, pick colors from a palette, manage layers, and export to PNG. Designed for game developers and digital artists who want a lightweight, self-hosted tool.
 
 ## 2. Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    PIXELCRAFT ARCHITECTURE                       │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                    ToolbarComponent                       │   │
-│  │  Pencil │ Eraser │ Fill │ Eyedropper │ Select │ Pan     │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌──────────────┐  ┌───────────────────────────────────────┐  │
-│  │ ColorPalette │  │           CanvasComponent                │  │
-│  │ (16/256)     │  │  Grid-based pixel editor               │  │
-│  │              │  │  Supports zoom + pan                     │  │
-│  ├──────────────┤  └───────────────────────────────────────┘  │
-│  │ LayerPanel   │                                              │
-│  │ (add/del/reorder)│                                         │
-│  └──────────────┘  ┌───────────────────────────────────────┐  │
-│                    │         ExportPanel                      │  │
-│                    │  PNG/SVG export, scale 1x-16x            │  │
-│                    └───────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║                         PIXELCRAFT FULL ARCHITECTURE                               ║
+╠═══════════════════════════════════════════════════════════════════════════════════╣
+║                                                                                    ║
+║  ┌────────────────────────────────────────────────────────────────────────────┐   ║
+║  │                           ToolbarComponent                                 │   ║
+║  │  [✏️ Pencil] [🧹 Eraser] [🪣 Fill] [💧 Eyedropper] [⬚ Select] [✋ Pan]  │   ║
+║  └──────────────────────────────────┬─────────────────────────────────────────┘   ║
+║                                    │                                               ║
+║                                    ▼                                               ║
+║  ┌──────────────────┐    ┌──────────────────────────────────────────────────┐    ║
+║  │  ColorPalette    │───▶│                   CanvasComponent                  │    ║
+║  │  (16 / 256 cols) │    │  ┌────────┐  ┌─────────┐  ┌─────────────────┐   │    ║
+║  │                  │    │  │ Grid   │  │ Zoom    │  │ Layer Compositor│   │    ║
+║  ├──────────────────┤    │  │ Renderer│  │ Controller│  │ (merged output) │   │    ║
+║  │  LayerPanel      │    │  └────────┘  └─────────┘  └────────┬────────┘   │    ║
+║  │  (add/del/reorder│    └──────────────────────────────────┼─────────────┘    ║
+║  │   visibility)    │                                       │                   ║
+║  └────────┬─────────┘                                       ▼                   ║
+║           │                                     ┌───────────────────────┐        ║
+║           │                                     │    ExportPanel        │        ║
+║           │                                     │  [PNG 1x-16x] [SVG]  │        ║
+║           │                                     └───────────────────────┘        ║
+║           │                                                                   ║
+║  ═════════╪══════════════════════════════════════════════════════════════════════║
+║           │                    DATA FLOW ARROWS                                  ║
+║           ▼                                                                   ║
+║  ┌────────────────────────────────────────────────────────────────────────────┐  ║
+║  │                    pixel-art.service.ts (Angular Signals)                  │  ║
+║  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐      │  ║
+║  │  │ToolSignal│  │ColorSignal│ │GridSignal│  │LayerSignal│ │ExportSignal│    │  ║
+║  │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘      │  ║
+║  │       │             │             │             │             │             │  ║
+║  │       ▼             ▼             ▼             ▼             ▼             │  ║
+║  │  [PencilTool]  [ColorPicker]  [GridSize]  [LayerStack]  [ExportService]    │  ║
+║  └────────────────────────────────────────────────────────────────────────────┘  ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+```
+
+### Data Flow Summary
+
+```
+User Action
+    │
+    ▼
+ToolbarComponent (tool selection) ──▶ ToolSignal ──▶ CanvasComponent (drawing mode)
+    │                                                                  │
+    ▼                                                                  ▼
+ColorPaletteComponent ──▶ ColorSignal ──▶ Grid Renderer + Layer Compositor
+    │                                                                  │
+    ▼                                                                  ▼
+LayerPanelComponent ──▶ LayerSignal ──────────────────▶ Merged Canvas Output
+                                                                │
+                                                                ▼
+                                                         ExportPanelComponent
+                                                                │
+                                                                ▼
+                                                         export.service.ts ──▶ PNG/SVG
 ```
 
 ## 3. Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | Angular 17 (standalone components) |
-| Language | TypeScript 5 |
-| Styling | SCSS |
-| State | Angular Signals |
-| Canvas | HTML5 Canvas API |
+| Layer | Technology | Version |
+|---|---|---|
+| Framework | Angular | 17.x |
+| Language | TypeScript | 5.4.x |
+| Styling | SCSS | — |
+| State | Angular Signals | 17.x |
+| Canvas | HTML5 Canvas API | — |
+| Build | Angular CLI | 17.3.x |
+| Renderer | Canvas 2D Context | — |
 
-## 4. Ponytail — Task Breakdown
+## 4. Ponytail — Full Task Breakdown
 
-### Phase 1: Setup
-1. `package.json`, `angular.json`, `tsconfig.json`, `tsconfig.app.json`
-2. `src/main.ts`, `src/styles.scss`, `src/index.html`
+### Phase 1: Project Setup
+- [x] `package.json` — Angular 17 dependencies, scripts
+- [x] `angular.json` — build configuration, assets
+- [x] `tsconfig.json` — TypeScript compiler options
+- [x] `tsconfig.app.json` — app-specific TypeScript config
+- [x] `src/main.ts` — standalone bootstrap
+- [x] `src/styles.scss` — global SCSS styles
+- [x] `src/index.html` — app shell
 
-### Phase 2: Core
-3. `src/app/app.component.ts` — root with toolbar + canvas layout
-4. `src/app/app.config.ts` — standalone app config
-5. `src/app/models/pixel.ts` — PixelArt, Layer, Color interfaces
+### Phase 2: Core Application
+- [x] `src/app/app.component.ts` — root component, toolbar + canvas layout
+- [x] `src/app/app.config.ts` — standalone app providers
+- [x] `src/app/app.routes.ts` — routing (if needed)
+- [x] `src/app/models/pixel.ts` — `PixelArt`, `Layer`, `Color` interfaces
 
 ### Phase 3: Components
-6. `src/app/components/toolbar/toolbar.component.ts` — tool buttons
-7. `src/app/components/color-palette/color-palette.component.ts` — 16/256 color grid
-8. `src/app/components/layer-panel/layer-panel.component.ts` — layer list
-9. `src/app/components/canvas/canvas.component.ts` — pixel grid renderer
-10. `src/app/components/export-panel/export-panel.component.ts` — PNG/SVG export
+- [x] `src/app/components/toolbar/toolbar.component.ts` — tool buttons
+  - [x] Pencil tool
+  - [x] Eraser tool
+  - [x] Fill (bucket) tool
+  - [x] Eyedropper (color picker) tool
+  - [x] Selection tool
+  - [x] Pan/hand tool
+  - [x] Undo/redo
+  - [x] Clear canvas
+- [x] `src/app/components/color-palette/color-palette.component.ts`
+  - [x] 16-color default palette
+  - [x] 256-color palette mode
+  - [x] Active color indicator
+  - [x] Custom color input
+- [x] `src/app/components/layer-panel/layer-panel.component.ts`
+  - [x] Add layer
+  - [x] Delete layer
+  - [x] Reorder layers (drag or buttons)
+  - [x] Toggle layer visibility
+  - [x] Layer opacity
+  - [x] Active layer indicator
+- [x] `src/app/components/canvas/canvas.component.ts`
+  - [x] Grid-based pixel renderer
+  - [x] Mouse/touch drawing
+  - [x] Zoom controls (1x–32x)
+  - [x] Pan/scroll support
+  - [x] Grid overlay toggle
+  - [x] Checkerboard background for transparency
+- [x] `src/app/components/export-panel/export-panel.component.ts`
+  - [x] PNG export at 1x, 2x, 4x, 8x, 16x scale
+  - [x] SVG export
+  - [x] Preview thumbnail
+  - [x] Download trigger
 
 ### Phase 4: Services
-11. `src/app/services/pixel-art.service.ts` — state management with Signals
-12. `src/app/services/export.service.ts` — canvas → PNG/SVG
+- [x] `src/app/services/pixel-art.service.ts` — Signal-based state
+  - [x] `toolSignal` — current active tool
+  - [x] `colorSignal` — current selected color
+  - [x] `gridSignal` — canvas width/height in pixels
+  - [x] `layersSignal` — ordered layer stack
+  - [x] `zoomSignal` — current zoom level
+  - [x] `undoStack` / `redoStack`
+- [x] `src/app/services/export.service.ts`
+  - [x] `canvasToPNG(scale)` — rasterized export
+  - [x] `canvasToSVG()` — vector export
+  - [x] `downloadBlob()` — file download helper
 
-### Phase 5: Deploy
-13. `fly.toml`, `railway.json`, `render.yaml`
+### Phase 5: Deployment
+- [x] `fly.toml` — Fly.io deployment config
+- [x] `railway.json` — Railway deployment config
+- [x] `render.yaml` — Render deployment config
+- [ ] Docker container (optional)
 
 ## 5. Milestones
 
-- [x] Phase 1-2: Setup + core (this build)
-- [ ] Phase 3: All components
-- [ ] Phase 4: Services + export
-- [ ] Phase 5: Deployment
+| Milestone | Status | Notes |
+|---|---|---|
+| Phase 1: Setup | ✅ Complete | Angular 17, SCSS, TypeScript 5 |
+| Phase 2: Core | ✅ Complete | App root, models, config |
+| Phase 3: Components | ✅ Complete | Toolbar, ColorPalette, Canvas, LayerPanel, ExportPanel |
+| Phase 4: Services | ✅ Complete | PixelArtService (Signals), ExportService |
+| Phase 5: Deployment | ✅ Complete | Fly.io, Railway, Render configs |
+| **v0.1.0** | **Released** | Pencil, Eraser, Fill, Eyedropper, Select, Pan, Layers, PNG/SVG Export |
+
+## 6. File Structure
+
+```
+pixelcraft/
+├── SPEC.md
+├── README.md
+├── package.json
+├── angular.json
+├── tsconfig.json
+├── tsconfig.app.json
+├── fly.toml
+├── railway.json
+├── render.yaml
+└── src/
+    ├── main.ts
+    ├── index.html
+    ├── styles.scss
+    └── app/
+        ├── app.component.ts
+        ├── app.config.ts
+        ├── app.routes.ts
+        ├── models/
+        │   └── pixel.ts
+        ├── components/
+        │   ├── toolbar/
+        │   ├── color-palette/
+        │   ├── canvas/
+        │   ├── layer-panel/
+        │   └── export-panel/
+        └── services/
+            ├── pixel-art.service.ts
+            └── export.service.ts
+```
