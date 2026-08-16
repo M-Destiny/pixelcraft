@@ -73,7 +73,10 @@ export class CanvasComponent {
       case 'i': this.svc.activeTool.set('eyedropper'); break;
       case 's': this.svc.activeTool.set('select'); break;
       case 'h': this.svc.activeTool.set('pan'); break;
-      case 'v': this.svc.activeTool.set('select'); break; // V for select (move tool)
+      case 'v':
+        if (isCtrlOrMeta) this.svc.pasteSelection(this.selectionBox());
+        else this.svc.activeTool.set('select');
+        break;
       case 'z':
         if (isCtrlOrMeta) {
           if (e.shiftKey) this.svc.redo();
@@ -85,13 +88,31 @@ export class CanvasComponent {
       case 'y':
         if (isCtrlOrMeta) this.svc.redo();
         break;
-      case 'x': this.svc.zoomOut(); break;
+      case 'x':
+        if (isCtrlOrMeta) this.svc.cutSelection(this.selectionBox());
+        else this.svc.zoomOut();
+        break;
       case '0': if (isCtrlOrMeta) this.svc.resetZoom(); break;
       case '+': case '=': this.svc.zoomIn(); break;
       case '-': this.svc.zoomOut(); break;
-      case 'g': this.svc.toggleGrid(); break;
+      case 'r': this.svc.resizeCanvasPrompt(); break;
       case 'escape': this.clearSelection(); break;
-      case 'delete': this.svc.clearActiveLayer(); break;
+      case 'delete':
+        if (this.selectionBox()) this.svc.deleteSelection(this.selectionBox());
+        else this.svc.clearCanvas();
+        break;
+      case 'arrowup':
+        if (this.selectionBox()) this.svc.moveSelection(this.selectionBox(), 0, -1);
+        break;
+      case 'arrowdown':
+        if (this.selectionBox()) this.svc.moveSelection(this.selectionBox(), 0, 1);
+        break;
+      case 'arrowleft':
+        if (this.selectionBox()) this.svc.moveSelection(this.selectionBox(), -1, 0);
+        break;
+      case 'arrowright':
+        if (this.selectionBox()) this.svc.moveSelection(this.selectionBox(), 1, 0);
+        break;
       case ' ':
         if (this.svc.activeTool() !== 'pan') {
           this.svc.activeTool.set('pan');

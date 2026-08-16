@@ -72,6 +72,9 @@ export class PixelArtService {
   private maxHistorySize = 50;
   private isRestoring = false;
 
+  // Selection clipboard
+  private clipboard: { pixels: string[][]; width: number; height: number } | null = null;
+
   // Computed
   activeLayer = computed(() => {
     const id = this.activeLayerId();
@@ -378,5 +381,152 @@ export class PixelArtService {
     this.activeLayerId.set(data.activeLayerId);
     this.undoStack = [];
     this.redoStack = [];
+  }
+
+  // Selection operations
+  private getSelectionRect(selection: { x: number; y: number; width: number; height: number } | null) {
+    if (!selection) return null;
+    return {
+      x: Math.max(0, Math.min(selection.x, this.width() - 1)),
+      y: Math.max(0, Math.min(selection.y, this.height() - 1)),
+      width: Math.max(0, Math.min(selection.width, this.width() - selection.x)),
+      height: Math.max(0, Math.min(selection.height, this.height() - selection.y)),
+    };
+  }
+
+  copySelection(selection: { x: number; y: number; width: number; height: number } | null) {
+    const rect = this.getSelectionRect(selection);
+    if (!rect || rect.width === 0 || rect.height === 0) return;
+    const layer = this.activeLayer();
+    if (!layer) return;
+    const pixels: string[][] = [];
+    for (let y = 0; y < rect.height; y++) {
+      const row: string[] = [];
+      for (let x = 0; x < rect.width; x++) {
+        row.push(layer.pixels[rect.y + y][rect.x + x]);
+      }
+      pixels.push(row);
+    }
+    this.clipboard = { pixels, width: rect.width, height: rect.height };
+  }
+
+  cutSelection(selection: { x: number; y: number; width: number; height: number } | null) {
+    this.copySelection(selection);
+    const rect = this.getSelectionRect(selection);
+    if (!rect || rect.width === 0 || rect.height === 0) return;
+    const layer = this.activeLayer();
+    if (!layer) return;
+    this.saveSnapshot();
+    const newPixels = layer.pixels.map((row, ry) =>
+      row.map((c, rx) => (rx >= rect.x && rx < rect.x + rect.width && ry >= rect.y && ry < rect.y + rect.height ? 'transparent' : c))
+    );
+    this.layers.update(layers =>
+      layers.map(l => (l.id === layer.id ? { ...l, pixels: newPixels } : l))
+    );
+  }
+
+  pasteSelection(selection: { x: number; y: number; width: number; height: number } | null) {
+    if (!this.clipboard) return;
+    const layer = this.activeLayer();
+    if (!layer || !layer.visible) return;
+    const rect = this.getSelectionRect(selection);
+    const pasteX = rect ? rect.x : 0;
+    const pasteY = rect ? rect.y : 0;
+    this.saveSnapshot();
+    const newPixels = layer.pixels.map((row, ry) =>
+      row.map((c, rx) => {
+        const sy = ry - pasteY;
+        const sx = rx - pasteX;
+        if (sy >= 0 && sy < this.clipboard!.height && sx >= 0 && sx < this.clipboard!.width) {
+          const clipColor = this.clipboard!.pixels[sy][sx];
+          return clipColor !== 'transparent' ? clipColor : c;
+        }
+        return c;
+      })
+    );
+    this.layers.update(layers =>
+      layers.map(l => (l.id === layer.id ? { ...l, pixels: newPixels } : l))
+    );
+  }
+
+  deleteSelection(selection: { x: number; y: number; width: number; height: number } | null) {
+    const rect = this.getSelectionRect(selection);
+    if (!rect || rect.width === 0 || rect.height === 0) return;
+    const layer = this.activeLayer();
+    if (!layer) return;
+    this.saveSnapshot();
+    const newPixels = layer.pixels.map((row, ry) =>
+      row.map((c, rx) => (rx >= rect.x && rx < rect.x + rect.width && ry >= rect.y && ry < rect.y + rect.height ? 'transparent' : c))
+    );
+    this.layers.update(layers =>
+      layers.map(l => (l.id === layer.id ? { ...l, pixels: newPixels } : l))
+    );
+  }
+
+  moveSelection(selection: { x: number; y: number; width: number; height: number } | null, dx: number, dy: number) {
+    const rect = this.getSelectionRect(selection);
+    if (!rect || rect.width === 0 || rect.height === 0) return;
+    const layer = this.activeLayer();
+    if (!layer || !layer.visible) return;
+    this.saveSnapshot();
+    // Extract selection pixels
+    const selectionPixels: string[][] = [];
+    for (let y = 0; y < rect.height; y++) {
+      const row: string[] = [];
+      for (let x = 0; x < rect.width; x++) {
+        row.push(layer.pixels[rect.y + y][rect.x + x]);
+      }
+      selectionPixels.push(row);
+    }
+    // Clear original area
+    const clearedPixels = layer.pixels.map((row, ry) =>
+      row.map((c, rx) => (rx >= rect.x && rx < rect.x + rect.width && ry >= rect.y && ry < rect.y + rect.height ? 'transparent' : c))
+    );
+    // Paste at new position
+    const newPixels = clearedPixels.map((row, ry) =>
+      row.map((c, rx) => {
+        const sy = ry - (rect.y + dy);
+        const sx = rx - (rect.x + dx);
+        if (sy >= 0 && sy < rect.height && sx >= 0 && sx < rect.width) {
+          const clipColor = selectionPixels[sy][sx];
+          return clipColor !== 'transparent' ? clipColor : c;
+        }
+        return c;
+      })
+    );
+    this.layers.update(layers =>
+      layers.map(l => (l.id === layer.id ? { ...l, pixels: newPixels } : l))
+    );
+  }
+
+  // Canvas resize
+  resizeCanvas(newWidth: number, newHeight: number) {
+    if (newWidth < 1 || newHeight < 1 || newWidth > 1024 || newHeight > 1024) return;
+    this.saveSnapshot();
+    this.width.set(newWidth);
+    this.height.set(newHeight);
+    this.layers.update(layers =>
+      layers.map(l => ({
+        ...l,
+        pixels: Array(newHeight).fill(null).map((_, y) =>
+          Array(newWidth).fill(null).map((_, x) =>
+            l.pixels[y]?.[x] ?? 'transparent'
+          )
+        ),
+      }))
+    );
+    this.redoStack = [];
+  }
+
+  resizeCanvasPrompt() {
+    const w = prompt('Canvas width (1-1024):', this.width().toString());
+    if (w === null) return;
+    const h = prompt('Canvas height (1-1024):', this.height().toString());
+    if (h === null) return;
+    const width = parseInt(w, 10);
+    const height = parseInt(h, 10);
+    if (!isNaN(width) && !isNaN(height)) {
+      this.resizeCanvas(width, height);
+    }
   }
 }
