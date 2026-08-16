@@ -260,6 +260,43 @@ export class PixelArtService {
     this.drawPixel(x, y, 'transparent');
   }
 
+  // Bresenham line — draws a straight line from (x0,y0) to (x1,y1)
+  drawLine(x0: number, y0: number, x1: number, y1: number, color: string) {
+    const layer = this.activeLayer();
+    if (!layer || !layer.visible) return;
+    const w = this.width();
+    const h = this.height();
+    if (x0 < 0 || y0 < 0 || x0 >= w || y0 >= h) return;
+    this.saveSnapshot();
+
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+    let x = x0;
+    let y = y0;
+
+    this.layers.update(layers => {
+      const newLayers = layers.map(l => {
+        if (l.id !== layer.id) return l;
+        // Deep clone the pixels grid so we can mutate safely
+        const pixels = l.pixels.map(row => [...row]);
+        while (true) {
+          if (x >= 0 && y >= 0 && x < w && y < h) {
+            pixels[y][x] = color;
+          }
+          if (x === x1 && y === y1) break;
+          const e2 = 2 * err;
+          if (e2 > -dy) { err -= dy; x += sx; }
+          if (e2 < dx) { err += dx; y += sy; }
+        }
+        return { ...l, pixels };
+      });
+      return newLayers;
+    });
+  }
+
   // Flood fill
   floodFill(startX: number, startY: number, fillColor: string) {
     const layer = this.activeLayer();

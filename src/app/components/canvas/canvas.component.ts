@@ -38,6 +38,14 @@ import { Tool } from '../../models/pixel';
           [style.height.px]="selectionBox()!.height"
         ></div>
       }
+      @if (lineAnchor() && linePreview()) {
+        <div class="absolute pointer-events-none"
+             [style.left.px]="lineAnchor()!.x"
+             [style.top.px]="lineAnchor()!.y"
+             [style.width.px]="linePreview()!.x - lineAnchor()!.x"
+             [style.height.px]="linePreview()!.y - lineAnchor()!.y"
+             class="border border-blue-400 border-dashed opacity-50"></div>
+      }
     </div>
   `,
 })
@@ -52,7 +60,22 @@ export class CanvasComponent {
   selectionStart = { x: 0, y: 0 };
   selectionBox = signal<{ x: number; y: number; width: number; height: number } | null>(null);
 
+  // Line tool: preview the line from the last anchor to current pointer
+  lineAnchor = signal<{ x: number; y: number } | null>(null);
+  linePreview = signal<{ x: number; y: number } | null>(null);
+
   cursorStyle = signal<string>('crosshair');
+
+  constructor() {
+    // Auto-redraw whenever the merged pixel grid or pan/zoom changes
+    effect(() => {
+      this.svc.mergedPixels();
+      this.svc.pan();
+      this.svc.zoom();
+      this.svc.showGrid();
+      this.redraw();
+    });
+  }
 
   ngAfterViewInit() {
     this.redraw();
@@ -163,8 +186,14 @@ export class CanvasComponent {
     switch (tool) {
       case 'pencil':
       case 'eraser':
-        this.drawing = true;
-        this.paint(e);
+        // Shift+drag draws a straight line from anchor to release point
+        if (e.shiftKey) {
+          this.lineAnchor.set({ x, y });
+          this.linePreview.set({ x, y });
+        } else {
+          this.drawing = true;
+          this.paint(e);
+        }
         break;
       case 'fill':
         this.floodFill(x, y);
@@ -199,6 +228,12 @@ export class CanvasComponent {
       return;
     }
 
+    // Live preview of the line while Shift is held
+    if (this.lineAnchor() && e.shiftKey) {
+      this.linePreview.set({ x, y });
+      return;
+    }
+
     if (this.selecting) {
       const minX = Math.min(this.selectionStart.x, x);
       const minY = Math.min(this.selectionStart.y, y);
@@ -218,7 +253,20 @@ export class CanvasComponent {
     }
   }
 
-  onMouseUp() {
+  onMouseUp(e?: MouseEvent) {
+    // Commit the line tool if we had a shift+drag
+    if (this.lineAnchor() && e && e.shiftKey) {
+      const canvas = this.canvasRef.nativeElement;
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left - this.svc.pan().x) / (this.svc.zoom() / 10));
+      const y = Math.floor((e.clientY - rect.top - this.svc.pan().y) / (this.svc.zoom() / 10));
+      const anchor = this.lineAnchor()!;
+      const color = this.svc.activeTool() === 'eraser' ? 'transparent' : this.svc.activeColor();
+      this.svc.drawLine(anchor.x, anchor.y, x, y, color);
+    }
+    this.lineAnchor.set(null);
+    this.linePreview.set(null);
+
     this.drawing = false;
     this.panning = false;
     this.selecting = false;
