@@ -15,7 +15,7 @@ PixelCraft is a browser-based pixel art editor built with Angular 17. Draw pixel
 ║                                                                                    ║
 ║  ┌────────────────────────────────────────────────────────────────────────────┐   ║
 ║  │                           ToolbarComponent                                 │   ║
-║  │  [✏️ Pencil] [🧹 Eraser] [🪣 Fill] [💧 Eyedropper] [⬚ Select] [✋ Pan]  │   ║
+║  │  [✏️ Pencil] [🧹 Eraser] [🪣 Fill] [💧 Eyedropper] [▭ Rect] [⬚ Select] [✋ Pan]  │   ║
 ║  └──────────────────────────────────┬─────────────────────────────────────────┘   ║
 ║                                    │                                               ║
 ║                                    ▼                                               ║
@@ -105,6 +105,7 @@ LayerPanelComponent ──▶ LayerSignal ────────────�
   - [x] Fill (bucket) tool
   - [x] Eyedropper (color picker) tool
   - [x] Selection tool
+  - [x] Rectangle tool (hollow + filled, Shift modifier; **R** shortcut)
   - [x] Pan/hand tool
   - [x] Undo/redo
   - [x] Clear canvas
@@ -162,6 +163,7 @@ LayerPanelComponent ──▶ LayerSignal ────────────�
 | Phase 4: Services | ✅ Complete | PixelArtService (Signals), ExportService |
 | Phase 5: Deployment | ✅ Complete | Fly.io, Railway, Render configs |
 | **v0.1.0** | **Released** | Pencil, Eraser, Fill, Eyedropper, Select, Pan, Layers, PNG/SVG Export |
+| **v0.2.0** | In progress | Rectangle tool (R), Merge-Down (⇩), Shift-straight line, touch/pinch-zoom, clipboard ops, 16↔256 palette, resize canvas |
 
 ## 6. File Structure
 

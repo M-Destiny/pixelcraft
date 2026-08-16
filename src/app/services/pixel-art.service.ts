@@ -297,6 +297,80 @@ export class PixelArtService {
     });
   }
 
+  // Hollow rectangle outline (Bresenham); filled when filled=true
+  drawRectangle(x0: number, y0: number, x1: number, y1: number, color: string, filled = false) {
+    const layer = this.activeLayer();
+    if (!layer || !layer.visible) return;
+    const w = this.width();
+    const h = this.height();
+    if (x0 < 0 || y0 < 0 || x0 >= w || y0 >= h) return;
+    this.saveSnapshot();
+
+    const minX = Math.max(0, Math.min(x0, x1));
+    const maxX = Math.min(w - 1, Math.max(x0, x1));
+    const minY = Math.max(0, Math.min(y0, y1));
+    const maxY = Math.min(h - 1, Math.max(y0, y1));
+
+    this.layers.update(layers => {
+      const newLayers = layers.map(l => {
+        if (l.id !== layer.id) return l;
+        const pixels = l.pixels.map(row => [...row]);
+        if (filled) {
+          for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+              pixels[y][x] = color;
+            }
+          }
+        } else {
+          // Hollow outline using Bresenham for each edge
+          const drawLineLocal = (ax: number, ay: number, bx: number, by: number) => {
+            const dx = Math.abs(bx - ax);
+            const dy = Math.abs(by - ay);
+            const sx = ax < bx ? 1 : -1;
+            const sy = ay < by ? 1 : -1;
+            let err = dx - dy;
+            let x = ax;
+            let y = ay;
+            while (true) {
+              if (x >= 0 && y >= 0 && x < w && y < h) pixels[y][x] = color;
+              if (x === bx && y === by) break;
+              const e2 = 2 * err;
+              if (e2 > -dy) { err -= dy; x += sx; }
+              if (e2 < dx) { err += dx; y += sy; }
+            }
+          };
+          drawLineLocal(minX, minY, maxX, minY);
+          drawLineLocal(maxX, minY, maxX, maxY);
+          drawLineLocal(maxX, maxY, minX, maxY);
+          drawLineLocal(minX, maxY, minX, minY);
+        }
+        return { ...l, pixels };
+      });
+      return newLayers;
+    });
+  }
+
+  // Merge layer B into layer A in-place (A is below B). Result sits at A's index.
+  mergeLayerDown(targetId: string) {
+    const layers = this.layers();
+    const index = layers.findIndex(l => l.id === targetId);
+    if (index <= 0) return; // need a layer below to merge into
+    const below = layers[index - 1];
+    const above = layers[index];
+    if (!below || !above) return;
+    this.saveSnapshot();
+    const w = this.width();
+    const h = this.height();
+    const mergedPixels = below.pixels.map((row, y) =>
+      row.map((c, x) => (above.pixels[y]?.[x] && above.pixels[y][x] !== 'transparent' ? above.pixels[y][x] : c))
+    );
+    const newLayers = layers
+      .map((l, i) => (i === index - 1 ? { ...l, pixels: mergedPixels, name: below.name + '+' + above.name } : l))
+      .filter((_, i) => i !== index);
+    this.layers.set(newLayers);
+    this.activeLayerId.set(below.id);
+  }
+
   // Flood fill
   floodFill(startX: number, startY: number, fillColor: string) {
     const layer = this.activeLayer();

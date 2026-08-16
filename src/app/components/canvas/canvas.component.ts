@@ -46,6 +46,13 @@ import { Tool } from '../../models/pixel';
              [style.height.px]="linePreview()!.y - lineAnchor()!.y"
              class="border border-blue-400 border-dashed opacity-50"></div>
       }
+      @if (rectAnchor && rectPreview()) {
+        <div class="absolute pointer-events-none border border-blue-400 border-dashed opacity-50"
+             [style.left.px]="rectAnchor.x"
+             [style.top.px]="rectAnchor.y"
+             [style.width.px]="rectPreview()!.x - rectAnchor.x"
+             [style.height.px]="rectPreview()!.y - rectAnchor.y"></div>
+      }
     </div>
   `,
 })
@@ -63,6 +70,10 @@ export class CanvasComponent {
   // Line tool: preview the line from the last anchor to current pointer
   lineAnchor = signal<{ x: number; y: number } | null>(null);
   linePreview = signal<{ x: number; y: number } | null>(null);
+
+  // Rectangle tool: anchor + live preview
+  rectAnchor: { x: number; y: number } | null = null;
+  rectPreview = signal<{ x: number; y: number } | null>(null);
 
   cursorStyle = signal<string>('crosshair');
 
@@ -94,6 +105,11 @@ export class CanvasComponent {
       case 'e': this.svc.activeTool.set('eraser'); break;
       case 'f': this.svc.activeTool.set('fill'); break;
       case 'i': this.svc.activeTool.set('eyedropper'); break;
+      case 'r':
+        // R toggles rectangle tool (avoid conflict with resizeCanvasPrompt)
+        if (!isCtrlOrMeta) this.svc.activeTool.set('rectangle');
+        else this.svc.resizeCanvasPrompt();
+        break;
       case 's': this.svc.activeTool.set('select'); break;
       case 'h': this.svc.activeTool.set('pan'); break;
       case 'v':
@@ -118,7 +134,6 @@ export class CanvasComponent {
       case '0': if (isCtrlOrMeta) this.svc.resetZoom(); break;
       case '+': case '=': this.svc.zoomIn(); break;
       case '-': this.svc.zoomOut(); break;
-      case 'r': this.svc.resizeCanvasPrompt(); break;
       case 'escape': this.clearSelection(); break;
       case 'delete':
         if (this.selectionBox()) this.svc.deleteSelection(this.selectionBox());
@@ -162,6 +177,7 @@ export class CanvasComponent {
       eyedropper: 'copy',
       select: 'crosshair',
       pan: 'grab',
+      rectangle: 'crosshair',
     };
     this.cursorStyle.set(cursors[tool] || 'crosshair');
   }
@@ -201,6 +217,10 @@ export class CanvasComponent {
       case 'eyedropper':
         this.pickColor(x, y);
         break;
+      case 'rectangle':
+        this.rectAnchor = { x, y };
+        this.rectPreview.set({ x, y });
+        break;
       case 'select':
         this.selecting = true;
         this.selectionStart = { x, y };
@@ -231,6 +251,11 @@ export class CanvasComponent {
     // Live preview of the line while Shift is held
     if (this.lineAnchor() && e.shiftKey) {
       this.linePreview.set({ x, y });
+      return;
+    }
+
+    if (this.rectAnchor) {
+      this.rectPreview.set({ x, y });
       return;
     }
 
@@ -266,6 +291,28 @@ export class CanvasComponent {
     }
     this.lineAnchor.set(null);
     this.linePreview.set(null);
+
+    // Commit the rectangle tool on mouse-up
+    if (this.rectAnchor && e) {
+      const canvas = this.canvasRef.nativeElement;
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left - this.svc.pan().x) / (this.svc.zoom() / 10));
+      const y = Math.floor((e.clientY - rect.top - this.svc.pan().y) / (this.svc.zoom() / 10));
+      let { x: ax, y: ay } = this.rectAnchor;
+      let { x: bx, y: by } = this.rectPreview() ?? { x: ax, y: ay };
+      // Hold Shift to constrain to a square
+      if (e.shiftKey) {
+        const size = Math.max(Math.abs(bx - ax), Math.abs(by - ay));
+        const sx = bx >= ax ? 1 : -1;
+        const sy = by >= ay ? 1 : -1;
+        bx = ax + sx * size;
+        by = ay + sy * size;
+      }
+      const color = this.svc.activeColor();
+      this.svc.drawRectangle(ax, ay, bx, by, color, false);
+    }
+    this.rectAnchor = null;
+    this.rectPreview.set(null);
 
     this.drawing = false;
     this.panning = false;
