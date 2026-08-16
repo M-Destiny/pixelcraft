@@ -48,6 +48,7 @@ export class ToolbarComponent {
     { id: 'eraser', label: 'Eraser', shortcut: 'E' },
     { id: 'fill', label: 'Fill', shortcut: 'F' },
     { id: 'eyedropper', label: 'Pick', shortcut: 'I' },
+    { id: 'rectangle', label: 'Rect', shortcut: 'R' },
     { id: 'select', label: 'Select', shortcut: 'S' },
     { id: 'pan', label: 'Pan', shortcut: 'H' },
   ];

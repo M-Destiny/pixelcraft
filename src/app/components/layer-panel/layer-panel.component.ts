@@ -38,6 +38,10 @@ import { PixelArtService } from '../../services/pixel-art.service';
             <button (click)="svc.duplicateLayer(layer.id)"
                     class="text-gray-400 hover:text-green-400 text-xs p-1"
                     title="Duplicate layer">⎘</button>
+            <button (click)="mergeDown(layer.id)"
+                    [disabled]="i === 0"
+                    class="text-gray-400 hover:text-blue-300 text-xs p-1 disabled:opacity-30"
+                    title="Merge down into layer below">⇩</button>
             <div class="flex gap-0.5 ml-1">
               <button (click)="moveLayerUp(i)"
                       [disabled]="i === 0"
@@ -75,5 +79,9 @@ export class LayerPanelComponent {
 
   moveLayerDown(index: number) {
     if (index < this.svc.layers().length - 1) this.svc.reorderLayer(index, index + 1);
+  }
+
+  mergeDown(id: string) {
+    this.svc.mergeLayerDown(id);
   }
 }
