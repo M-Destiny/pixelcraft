@@ -202,6 +202,16 @@ export class PixelArtService {
     this.redoStack = [];
   }
 
+  clearCanvas() {
+    this.saveSnapshot();
+    this.layers.update(layers =>
+      layers.map(l => ({
+        ...l,
+        pixels: Array(this.height()).fill(null).map(() => Array(this.width()).fill('transparent'))
+      }))
+    );
+  }
+
   undo() {
     if (this.undoStack.length === 0) return;
     this.isRestoring = true;
