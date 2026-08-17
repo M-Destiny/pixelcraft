@@ -485,7 +485,7 @@ export class CanvasComponent {
   private pickColor(x: number, y: number) {
     const color = this.svc.pickColor(x, y);
     if (color && color !== 'transparent') {
-      this.svc.activeColor.set(color);
+      this.svc.setActiveColor(color);
       // Switch back to pencil after picking
       this.svc.activeTool.set('pencil');
       this.updateCursor();

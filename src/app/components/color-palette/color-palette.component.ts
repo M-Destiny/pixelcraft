@@ -17,12 +17,11 @@ import { PixelArtService } from '../../services/pixel-art.service';
           {{ useExtended() ? '16' : '256' }}
         </button>
       </div>
-      
-      <!-- Custom color input -->
+      \n      <!-- Custom color input -->
       <div class="flex items-center gap-2">
         <input type="color" 
                [value]="svc.activeColor()" 
-               (input)="svc.activeColor.set($any($event.target).value)"
+               (input)="svc.setActiveColor($any($event.target).value)"
                class="w-8 h-8 rounded border border-gray-600 cursor-pointer"
                title="Custom color picker" />
         <input type="text" 
@@ -34,10 +33,27 @@ import { PixelArtService } from '../../services/pixel-art.service';
                title="Enter hex color" />
       </div>
       
+      <!-- Color history / swatches -->
+      <div class="flex flex-col gap-1">
+        <p class="text-xs text-gray-500">Recent</p>
+        <div class="flex flex-wrap gap-1">
+          @for (color of svc.getColorHistory(); track color) {
+            <button
+              (click)="svc.setActiveColor(color)"
+              [style.background]="color"
+              [class.ring-2]="svc.activeColor() === color"
+              [class.ring-blue-400]="svc.activeColor() === color"
+              class="w-8 h-8 rounded border border-gray-600 hover:scale-110 transition-transform"
+              [title]="color"
+            ></button>
+          }
+        </div>
+      </div>
+
       <div class="flex flex-wrap gap-1 max-h-40 overflow-y-auto">
         @for (color of displayedColors(); track color) {
           <button
-            (click)="svc.activeColor.set(color)"
+            (click)="svc.setActiveColor(color)"
             [style.background]="color"
             [class.ring-2]="svc.activeColor() === color"
             [class.ring-blue-400]="svc.activeColor() === color"
@@ -68,7 +84,7 @@ export class ColorPaletteComponent {
   onHexBlur(event: Event) {
     const value = (event.target as HTMLInputElement).value;
     if (/^#[0-9a-fA-F]{6}$/i.test(value)) {
-      this.svc.activeColor.set(value.toLowerCase());
+      this.svc.setActiveColor(value.toLowerCase());
     } else {
       // Reset to current color if invalid
       (event.target as HTMLInputElement).value = this.svc.activeColor();

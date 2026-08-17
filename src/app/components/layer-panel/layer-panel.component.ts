@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PixelArtService } from '../../services/pixel-art.service';
+import { BlendMode } from '../../models/pixel';
 
 @Component({
   selector: 'app-layer-panel',
@@ -14,43 +15,64 @@ import { PixelArtService } from '../../services/pixel-art.service';
       </div>
       <div class="space-y-1 max-h-64 overflow-y-auto">
         @for (layer of svc.layers(); track layer.id; let i = $index) {
-          <div class="flex items-center gap-2 px-2 py-1.5 rounded bg-[#0f3460] text-sm"
+          <div class="flex flex-col gap-1 px-2 py-1.5 rounded bg-[#0f3460] text-sm"
                [class.ring-2]="svc.activeLayerId() === layer.id"
                [class.ring-blue-400]="svc.activeLayerId() === layer.id">
-            <input type="checkbox"
-                   [checked]="layer.visible"
-                   (change)="svc.toggleLayerVisibility(layer.id)"
-                   class="w-4 h-4 accent-blue-500" />
-            <input type="text"
-                   [value]="layer.name"
-                   (blur)="renameLayer(layer.id, $any($event.target).value)"
-                   (keydown.enter)="renameLayer(layer.id, $any($event.target).value)"
-                   class="flex-1 bg-transparent border-none text-white text-sm focus:outline-none"
-                   title="Layer name" />
-            <span class="text-xs text-gray-500 w-10 text-right">{{ Math.round(layer.opacity * 100) }}%</span>
-            <input type="range" min="0" max="100" step="5"
-                   [value]="layer.opacity * 100"
-                   (input)="svc.setLayerOpacity(layer.id, $any($event.target).value / 100)"
-                   class="w-16 accent-blue-500" />
-            <button (click)="svc.deleteLayer(layer.id)"
-                    class="text-gray-400 hover:text-red-400 text-xs p-1"
-                    title="Delete layer">✕</button>
-            <button (click)="svc.duplicateLayer(layer.id)"
-                    class="text-gray-400 hover:text-green-400 text-xs p-1"
-                    title="Duplicate layer">⎘</button>
-            <button (click)="mergeDown(layer.id)"
-                    [disabled]="i === 0"
-                    class="text-gray-400 hover:text-blue-300 text-xs p-1 disabled:opacity-30"
-                    title="Merge down into layer below">⇩</button>
-            <div class="flex gap-0.5 ml-1">
-              <button (click)="moveLayerUp(i)"
+            <div class="flex items-center gap-2">
+              <input type="checkbox"
+                     [checked]="layer.visible"
+                     (change)="svc.toggleLayerVisibility(layer.id)"
+                     class="w-4 h-4 accent-blue-500" />
+              <input type="text"
+                     [value]="layer.name"
+                     (blur)="renameLayer(layer.id, $any($event.target).value)"
+                     (keydown.enter)="renameLayer(layer.id, $any($event.target).value)"
+                     class="flex-1 bg-transparent border-none text-white text-sm focus:outline-none"
+                     title="Layer name" />
+              <button (click)="svc.deleteLayer(layer.id)"
+                      class="text-gray-400 hover:text-red-400 text-xs p-1"
+                      title="Delete layer">✕</button>
+              <button (click)="svc.duplicateLayer(layer.id)"
+                      class="text-gray-400 hover:text-green-400 text-xs p-1"
+                      title="Duplicate layer">⎘</button>
+              <button (click)="mergeDown(layer.id)"
+                      [disabled]="i === 0"
+                      class="text-gray-400 hover:text-blue-300 text-xs p-1 disabled:opacity-30"
+                      title="Merge down into layer below">⇩</button>
+              <div class="flex gap-0.5 ml-1">
+                <button (click)="moveLayerUp(i)"
                       [disabled]="i === 0"
                       class="text-gray-400 hover:text-blue-300 text-xs p-1 disabled:opacity-30"
                       title="Move up">▲</button>
-              <button (click)="moveLayerDown(i)"
+                <button (click)="moveLayerDown(i)"
                       [disabled]="i === svc.layers().length - 1"
                       class="text-gray-400 hover:text-blue-300 text-xs p-1 disabled:opacity-30"
                       title="Move down">▼</button>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 pl-6">
+              <span class="text-xs text-gray-500 w-10 text-right">{{ Math.round(layer.opacity * 100) }}%</span>
+              <input type="range" min="0" max="100" step="5"
+                     [value]="layer.opacity * 100"
+                     (input)="svc.setLayerOpacity(layer.id, $any($event.target).value / 100)"
+                     class="w-20 accent-blue-500" />
+              <select [value]="layer.blendMode"
+                      (change)="onBlendModeChange(layer.id, $any($event.target).value)"
+                      class="text-xs bg-[#1a1a2e] border border-gray-600 rounded px-2 py-1 text-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      title="Blend mode">
+                <option value="normal">Normal</option>
+                <option value="multiply">Multiply</option>
+                <option value="screen">Screen</option>
+                <option value="overlay">Overlay</option>
+                <option value="darken">Darken</option>
+                <option value="lighten">Lighten</option>
+                <option value="color-dodge">Color Dodge</option>
+                <option value="color-burn">Color Burn</option>
+                <option value="hard-light">Hard Light</option>
+                <option value="soft-light">Soft Light</option>
+                <option value="difference">Difference</option>
+                <option value="exclusion">Exclusion</option>
+              </select>
             </div>
           </div>
         }
@@ -67,7 +89,6 @@ export class LayerPanelComponent {
   }
 
   renameLayer(id: string, name: string) {
-    // The service doesn't have renameLayer yet, but we can update via layers signal
     this.svc.layers.update(layers =>
       layers.map(l => l.id === id ? { ...l, name: name || 'Unnamed' } : l)
     );
@@ -83,5 +104,9 @@ export class LayerPanelComponent {
 
   mergeDown(id: string) {
     this.svc.mergeLayerDown(id);
+  }
+
+  onBlendModeChange(id: string, value: string) {
+    this.svc.setLayerBlendMode(id, value as BlendMode);
   }
 }

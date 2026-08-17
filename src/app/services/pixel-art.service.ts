@@ -1,5 +1,5 @@
 import { Injectable, signal, computed, effect } from '@angular/core';
-import { PixelArt, Layer, Tool } from '../models/pixel';
+import { Layer, Tool, BlendMode } from '../models/pixel';
 
 interface CanvasSnapshot {
   layers: Layer[];
@@ -16,6 +16,7 @@ function createEmptyLayer(width: number, height: number, name: string): Layer {
     name,
     visible: true,
     opacity: 1,
+    blendMode: 'normal',
     pixels: Array(height).fill(null).map(() => Array(width).fill('transparent')),
   };
 }
@@ -35,16 +36,128 @@ function mergeLayers(layers: Layer[], width: number, height: number): string[][]
   const merged = Array(height).fill(null).map(() => Array(width).fill('transparent'));
   for (const layer of layers) {
     if (!layer.visible) continue;
+    const opacity = layer.opacity ?? 1;
+    const blendMode = layer.blendMode ?? 'normal';
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const color = layer.pixels[y][x];
         if (color !== 'transparent') {
-          merged[y][x] = color;
+          const existing = merged[y][x];
+          if (existing !== 'transparent') {
+            merged[y][x] = blendColors(existing, color, opacity, blendMode);
+          } else {
+            merged[y][x] = applyOpacity(color, opacity);
+          }
         }
       }
     }
   }
   return merged;
+}
+
+// Blend mode functions
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  return '#' + [r, g, b].map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+}
+
+function applyOpacity(color: string, opacity: number): string {
+  const rgb = hexToRgb(color);
+  if (!rgb) return color;
+  return rgbToHex(rgb.r * opacity, rgb.g * opacity, rgb.b * opacity);
+}
+
+function blendColors(base: string, overlay: string, opacity: number, blendMode: BlendMode): string {
+  const baseRgb = hexToRgb(base);
+  const overlayRgb = hexToRgb(overlay);
+  if (!baseRgb || !overlayRgb) return overlay;
+  
+  let r = baseRgb.r;
+  let g = baseRgb.g;
+  let b = baseRgb.b;
+  
+  const or = overlayRgb.r;
+  const og = overlayRgb.g;
+  const ob = overlayRgb.b;
+  
+  switch (blendMode) {
+    case 'multiply':
+      r = (r * or) / 255;
+      g = (g * og) / 255;
+      b = (b * ob) / 255;
+      break;
+    case 'screen':
+      r = 255 - ((255 - r) * (255 - or)) / 255;
+      g = 255 - ((255 - g) * (255 - og)) / 255;
+      b = 255 - ((255 - b) * (255 - ob)) / 255;
+      break;
+    case 'overlay':
+      r = r < 128 ? (2 * r * or) / 255 : 255 - (2 * (255 - r) * (255 - or)) / 255;
+      g = g < 128 ? (2 * g * og) / 255 : 255 - (2 * (255 - g) * (255 - og)) / 255;
+      b = b < 128 ? (2 * b * ob) / 255 : 255 - (2 * (255 - b) * (255 - ob)) / 255;
+      break;
+    case 'darken':
+      r = Math.min(r, or);
+      g = Math.min(g, og);
+      b = Math.min(b, ob);
+      break;
+    case 'lighten':
+      r = Math.max(r, or);
+      g = Math.max(g, og);
+      b = Math.max(b, ob);
+      break;
+    case 'color-dodge':
+      r = or === 255 ? 255 : Math.min(255, (r * 255) / (255 - or));
+      g = og === 255 ? 255 : Math.min(255, (g * 255) / (255 - og));
+      b = ob === 255 ? 255 : Math.min(255, (b * 255) / (255 - ob));
+      break;
+    case 'color-burn':
+      r = or === 0 ? 0 : Math.max(0, 255 - ((255 - r) * 255) / or);
+      g = og === 0 ? 0 : Math.max(0, 255 - ((255 - g) * 255) / og);
+      b = ob === 0 ? 0 : Math.max(0, 255 - ((255 - b) * 255) / ob);
+      break;
+    case 'hard-light':
+      r = or < 128 ? (2 * r * or) / 255 : 255 - (2 * (255 - r) * (255 - or)) / 255;
+      g = og < 128 ? (2 * g * og) / 255 : 255 - (2 * (255 - g) * (255 - og)) / 255;
+      b = ob < 128 ? (2 * b * ob) / 255 : 255 - (2 * (255 - b) * (255 - ob)) / 255;
+      break;
+    case 'soft-light':
+      r = or < 128 ? 2 * ((r / 255) * (or / 255) + (r / 255) * (1 - or / 255)) * 255 : 255 - 2 * (1 - r / 255) * (1 - or / 255) * 255;
+      g = og < 128 ? 2 * ((g / 255) * (og / 255) + (g / 255) * (1 - og / 255)) * 255 : 255 - 2 * (1 - g / 255) * (1 - og / 255) * 255;
+      b = ob < 128 ? 2 * ((b / 255) * (ob / 255) + (b / 255) * (1 - ob / 255)) * 255 : 255 - 2 * (1 - b / 255) * (1 - ob / 255) * 255;
+      break;
+    case 'difference':
+      r = Math.abs(r - or);
+      g = Math.abs(g - og);
+      b = Math.abs(b - ob);
+      break;
+    case 'exclusion':
+      r = r + or - (2 * r * or) / 255;
+      g = g + og - (2 * g * og) / 255;
+      b = b + ob - (2 * b * ob) / 255;
+      break;
+    case 'normal':
+    default:
+      r = or;
+      g = og;
+      b = ob;
+      break;
+  }
+  
+  // Apply opacity
+  r = baseRgb.r * (1 - opacity) + r * opacity;
+  g = baseRgb.g * (1 - opacity) + g * opacity;
+  b = baseRgb.b * (1 - opacity) + b * opacity;
+  
+  return rgbToHex(r, g, b);
 }
 
 @Injectable({ providedIn: 'root' })
@@ -59,7 +172,16 @@ export class PixelArtService {
 
   // Tool & color
   activeTool = signal<Tool>('pencil');
-  activeColor = signal<string>('#ffffff');
+  private _activeColor = signal<string>('#ffffff');
+  
+  get activeColor() {
+    return this._activeColor;
+  }
+  
+  setActiveColor(color: string) {
+    this._activeColor.set(color);
+    this.addToColorHistory(color);
+  }
 
   // View
   zoom = signal<number>(10);
@@ -163,6 +285,13 @@ export class PixelArtService {
     this.saveSnapshot();
     this.layers.update(layers =>
       layers.map(l => (l.id === id ? { ...l, opacity: Math.max(0, Math.min(1, opacity)) } : l))
+    );
+  }
+
+  setLayerBlendMode(id: string, blendMode: BlendMode) {
+    this.saveSnapshot();
+    this.layers.update(layers =>
+      layers.map(l => (l.id === id ? { ...l, blendMode } : l))
     );
   }
 
@@ -485,6 +614,13 @@ export class PixelArtService {
 
   extendedColors: string[] = [];
 
+  // Color history (recently used colors)
+  private colorHistory: string[] = [];
+  private maxColorHistorySize = 20;
+
+  // Signal for reactive color history display
+  colorHistorySignal = signal<string[]>([]);
+
   generateExtendedPalette() {
     if (this.extendedColors.length > 0) return this.extendedColors;
     const colors: string[] = [];
@@ -506,6 +642,25 @@ export class PixelArtService {
     }
     this.extendedColors = [...new Set([...this.defaultColors, ...colors])];
     return this.extendedColors;
+  }
+
+  // Color history management
+  private addToColorHistory(color: string) {
+    if (!color || color === 'transparent') return;
+    // Remove if already exists
+    this.colorHistory = this.colorHistory.filter(c => c !== color);
+    // Add to front
+    this.colorHistory.unshift(color);
+    // Trim to max size
+    if (this.colorHistory.length > this.maxColorHistorySize) {
+      this.colorHistory = this.colorHistory.slice(0, this.maxColorHistorySize);
+    }
+    // Update signal
+    this.colorHistorySignal.set([...this.colorHistory]);
+  }
+
+  getColorHistory(): string[] {
+    return this.colorHistorySignal();
   }
 
   // Export data

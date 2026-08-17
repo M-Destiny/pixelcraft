@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { PixelArt, Layer } from '../models/pixel';
+import { Layer } from '../models/pixel';
 
 export interface ExportData {
   width: number;
@@ -8,8 +8,56 @@ export interface ExportData {
   activeLayerId: string;
 }
 
+export interface ExportPreset {
+  name: string;
+  format: 'png' | 'svg';
+  scale?: number; // only for PNG
+}
+
 @Injectable({ providedIn: 'root' })
 export class ExportService {
+  // Built-in export presets
+  readonly builtInPresets: ExportPreset[] = [
+    { name: 'PNG 1x', format: 'png', scale: 1 },
+    { name: 'PNG 2x', format: 'png', scale: 2 },
+    { name: 'PNG 4x', format: 'png', scale: 4 },
+    { name: 'PNG 8x', format: 'png', scale: 8 },
+    { name: 'PNG 16x', format: 'png', scale: 16 },
+    { name: 'SVG (Vector)', format: 'svg' },
+  ];
+
+  // User presets stored in localStorage
+  private getUserPresets(): ExportPreset[] {
+    try {
+      const stored = localStorage.getItem('pixelcraft-export-presets');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveUserPresets(presets: ExportPreset[]) {
+    localStorage.setItem('pixelcraft-export-presets', JSON.stringify(presets));
+  }
+
+  getAllPresets(): ExportPreset[] {
+    return [...this.builtInPresets, ...this.getUserPresets()];
+  }
+
+  addPreset(preset: ExportPreset) {
+    const userPresets = this.getUserPresets();
+    userPresets.push(preset);
+    this.saveUserPresets(userPresets);
+  }
+
+  removePreset(index: number) {
+    const userPresets = this.getUserPresets();
+    if (index >= 0 && index < userPresets.length) {
+      userPresets.splice(index, 1);
+      this.saveUserPresets(userPresets);
+    }
+  }
+
   exportPNG(data: ExportData, scale = 4): string {
     const canvas = document.createElement('canvas');
     canvas.width = data.width * scale;
