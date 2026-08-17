@@ -1,7 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PixelArtService } from '../../services/pixel-art.service';
-import { ExportService } from '../../services/export.service';
+import { ExportService, ExportData } from '../../services/export.service';
 
 @Component({
   selector: 'app-export-panel',
@@ -11,6 +11,14 @@ import { ExportService } from '../../services/export.service';
     <div class="space-y-2">
       <p class="text-xs text-gray-400 mb-1 font-medium">Export</p>
       
+      <!-- Preview thumbnail -->
+      <div class="mb-2">
+        <p class="text-xs text-gray-500 mb-1">Preview</p>
+        <div class="relative w-full aspect-square bg-checkerboard rounded border border-gray-600 overflow-hidden">
+          <img [src]="previewUrl()" alt="Preview" class="w-full h-full object-contain" />
+        </div>
+      </div>
+
       <div class="space-y-1">
         <p class="text-xs text-gray-500">PNG Scale</p>
         <div class="flex flex-wrap gap-1">
@@ -37,8 +45,13 @@ export class ExportPanelComponent {
   exporter = inject(ExportService);
   scales = [1, 2, 4, 8, 16];
 
+  previewUrl = computed(() => {
+    const data: ExportData = this.svc.getExportData() as ExportData;
+    return this.exporter.exportPNG(data, 1);
+  });
+
   downloadPNG(scale: number) {
-    const data = this.svc.getExportData();
+    const data: ExportData = this.svc.getExportData() as ExportData;
     const url = this.exporter.exportPNG(data, scale);
     const a = document.createElement('a');
     a.href = url; 
@@ -47,7 +60,7 @@ export class ExportPanelComponent {
   }
 
   downloadSVG() {
-    const data = this.svc.getExportData();
+    const data: ExportData = this.svc.getExportData() as ExportData;
     const svg = this.exporter.exportSVG(data);
     const blob = new Blob([svg], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
