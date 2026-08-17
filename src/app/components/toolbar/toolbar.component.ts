@@ -31,6 +31,17 @@ import { Tool } from '../../models/pixel';
       <button (click)="resetZoom()" class="px-3 py-1.5 rounded text-sm font-medium hover:bg-[#0f3460] transition-colors" title="Reset zoom (Ctrl+0)">
         Reset Zoom <span class="ml-1 text-xs text-gray-400">[Ctrl+0]</span>
       </button>
+      <div class="w-px h-6 bg-gray-600 mx-2"></div>
+      <button (click)="cycleBrush()" class="px-3 py-1.5 rounded text-sm font-medium hover:bg-[#0f3460] transition-colors" title="Cycle brush size (B)">
+        Brush {{ svc.brushSize() }}px <span class="ml-1 text-xs text-gray-400">[B]</span>
+      </button>
+      <div class="w-px h-6 bg-gray-600 mx-2"></div>
+      <button (click)="svc.saveProjectPrompt()" class="px-3 py-1.5 rounded text-sm font-medium hover:bg-[#0f3460] transition-colors" title="Save project (Ctrl+S)">
+        Save <span class="ml-1 text-xs text-gray-400">[Ctrl+S]</span>
+      </button>
+      <button (click)="svc.loadProjectPrompt()" class="px-3 py-1.5 rounded text-sm font-medium hover:bg-[#0f3460] transition-colors" title="Load project (Ctrl+O)">
+        Load <span class="ml-1 text-xs text-gray-400">[Ctrl+O]</span>
+      </button>
       <div class="ml-auto flex items-center gap-2">
         <span class="text-sm text-gray-400">Zoom:</span>
         <input type="range" min="4" max="32" [value]="svc.zoom()" (input)="svc.setZoom($any($event.target).value)" class="w-32 accent-blue-500" />
@@ -73,5 +84,9 @@ export class ToolbarComponent {
 
   resetZoom() {
     this.svc.resetZoom();
+  }
+
+  cycleBrush() {
+    this.svc.cycleBrushSize();
   }
 }

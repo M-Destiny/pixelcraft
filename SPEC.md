@@ -105,10 +105,12 @@ LayerPanelComponent ──▶ LayerSignal ────────────�
   - [x] Fill (bucket) tool
   - [x] Eyedropper (color picker) tool
   - [x] Selection tool
-  - [x] Rectangle tool (hollow + filled, Shift modifier; **R** shortcut)
+  - [x] Rectangle tool (hollow + filled, Shift modifier; **R** shortcut, **Alt+drag** = filled)
   - [x] Pan/hand tool
   - [x] Undo/redo
   - [x] Clear canvas
+  - [x] Brush size cycle (1→3→5, **B** shortcut)
+  - [x] Save/Load project (Ctrl+S / Ctrl+O, JSON)
 - [x] `src/app/components/color-palette/color-palette.component.ts`
   - [x] 16-color default palette
   - [x] 256-color palette mode
@@ -121,13 +123,18 @@ LayerPanelComponent ──▶ LayerSignal ────────────�
   - [x] Toggle layer visibility
   - [x] Layer opacity
   - [x] Active layer indicator
+  - [x] Merge down
+  - [x] Duplicate layer
 - [x] `src/app/components/canvas/canvas.component.ts`
   - [x] Grid-based pixel renderer
   - [x] Mouse/touch drawing
+  - [x] Brush-size-aware stamping (1/3/5)
   - [x] Zoom controls (1x–32x)
   - [x] Pan/scroll support
   - [x] Grid overlay toggle
   - [x] Checkerboard background for transparency
+  - [x] Selection flip H/V (**M** / **Shift+M**)
+  - [x] Filled + hollow rectangle with Shift-square constraint
 - [x] `src/app/components/export-panel/export-panel.component.ts`
   - [x] PNG export at 1x, 2x, 4x, 8x, 16x scale
   - [x] SVG export
@@ -142,6 +149,9 @@ LayerPanelComponent ──▶ LayerSignal ────────────�
   - [x] `layersSignal` — ordered layer stack
   - [x] `zoomSignal` — current zoom level
   - [x] `undoStack` / `redoStack`
+  - [x] `brushSize` — 1/3/5 square brush
+  - [x] `flipSelection(H|V)` — mirror selection in place
+  - [x] `saveProjectToJSON` / `loadProjectFromJSON` — round-trip project state
 - [x] `src/app/services/export.service.ts`
   - [x] `canvasToPNG(scale)` — rasterized export
   - [x] `canvasToSVG()` — vector export
@@ -164,6 +174,7 @@ LayerPanelComponent ──▶ LayerSignal ────────────�
 | Phase 5: Deployment | ✅ Complete | Fly.io, Railway, Render configs |
 | **v0.1.0** | **Released** | Pencil, Eraser, Fill, Eyedropper, Select, Pan, Layers, PNG/SVG Export |
 | **v0.2.0** | In progress | Rectangle tool (R), Merge-Down (⇩), Shift-straight line, touch/pinch-zoom, clipboard ops, 16↔256 palette, resize canvas |
+| **v0.3.0** | In progress | Filled rectangle (Alt+drag), brush size (B cycles 1/3/5), flip selection H/V (M / Shift+M), project save/load JSON (Ctrl+S / Ctrl+O) |
 
 ## 6. File Structure
 

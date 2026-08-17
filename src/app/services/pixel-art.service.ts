@@ -66,6 +66,9 @@ export class PixelArtService {
   pan = signal<{ x: number; y: number }>({ x: 0, y: 0 });
   showGrid = signal<boolean>(false);
 
+  // Brush size (1, 3, or 5) — applies to pencil/eraser/rectangle outline
+  brushSize = signal<number>(1);
+
   // History
   private undoStack: CanvasSnapshot[] = [];
   private redoStack: CanvasSnapshot[] = [];
@@ -258,6 +261,36 @@ export class PixelArtService {
 
   erasePixel(x: number, y: number) {
     this.drawPixel(x, y, 'transparent');
+  }
+
+  // Stamp a square brush of side `size` centered on (x, y). Used by pencil/eraser.
+  drawBrush(x: number, y: number, size: number, color: string) {
+    if (size <= 1) {
+      this.drawPixel(x, y, color);
+      return;
+    }
+    const half = Math.floor(size / 2);
+    const w = this.width();
+    const h = this.height();
+    const layer = this.activeLayer();
+    if (!layer || !layer.visible) return;
+    this.saveSnapshot();
+    const startX = Math.max(0, x - half);
+    const startY = Math.max(0, y - half);
+    const endX = Math.min(w - 1, x + (size - 1 - half));
+    const endY = Math.min(h - 1, y + (size - 1 - half));
+    this.layers.update(layers =>
+      layers.map(l => {
+        if (l.id !== layer.id) return l;
+        const pixels: string[][] = l.pixels.map((row: string[]) => [...row]);
+        for (let yy = startY; yy <= endY; yy++) {
+          for (let xx = startX; xx <= endX; xx++) {
+            pixels[yy][xx] = color;
+          }
+        }
+        return { ...l, pixels };
+      })
+    );
   }
 
   // Bresenham line — draws a straight line from (x0,y0) to (x1,y1)
@@ -639,5 +672,113 @@ export class PixelArtService {
     if (!isNaN(width) && !isNaN(height)) {
       this.resizeCanvas(width, height);
     }
+  }
+
+  // ----- Brush size -----
+  setBrushSize(size: number) {
+    // Snap to nearest supported size: 1, 3, 5
+    const supported = [1, 3, 5];
+    const nearest = supported.reduce((prev, curr) =>
+      Math.abs(curr - size) < Math.abs(prev - size) ? curr : prev
+    );
+    this.brushSize.set(nearest);
+  }
+
+  cycleBrushSize() {
+    const order = [1, 3, 5];
+    const idx = order.indexOf(this.brushSize());
+    this.brushSize.set(order[(idx + 1) % order.length]);
+  }
+
+  // ----- Flip selection (horizontal / vertical) -----
+  flipSelectionHorizontal(selection: { x: number; y: number; width: number; height: number } | null) {
+    this.flipSelection(selection, 'horizontal');
+  }
+
+  flipSelectionVertical(selection: { x: number; y: number; width: number; height: number } | null) {
+    this.flipSelection(selection, 'vertical');
+  }
+
+  private flipSelection(
+    selection: { x: number; y: number; width: number; height: number } | null,
+    axis: 'horizontal' | 'vertical'
+  ) {
+    const rect = this.getSelectionRect(selection);
+    if (!rect || rect.width === 0 || rect.height === 0) return;
+    const layer = this.activeLayer();
+    if (!layer) return;
+    this.saveSnapshot();
+    const newPixels: string[][] = layer.pixels.map((row: string[]) => [...row]);
+    for (let y = 0; y < rect.height; y++) {
+      for (let x = 0; x < rect.width; x++) {
+        const srcX = axis === 'horizontal' ? rect.width - 1 - x : x;
+        const srcY = axis === 'vertical' ? rect.height - 1 - y : y;
+        newPixels[rect.y + y][rect.x + x] = layer.pixels[rect.y + srcY][rect.x + srcX];
+      }
+    }
+    this.layers.update(layers =>
+      layers.map(l => (l.id === layer.id ? { ...l, pixels: newPixels } : l))
+    );
+  }
+
+  // ----- Project save / load (JSON) -----
+  saveProjectToJSON(): string {
+    const data = {
+      version: 1,
+      width: this.width(),
+      height: this.height(),
+      layers: cloneLayers(this.layers()),
+      activeLayerId: this.activeLayerId(),
+    };
+    return JSON.stringify(data);
+  }
+
+  loadProjectFromJSON(json: string): boolean {
+    try {
+      const data = JSON.parse(json);
+      if (!data || typeof data.width !== 'number' || !Array.isArray(data.layers)) return false;
+      this.width.set(data.width);
+      this.height.set(data.height);
+      this.layers.set(
+        data.layers.map((l: any) => ({
+          ...l,
+          pixels: l.pixels.map((row: any) => [...row]),
+        }))
+      );
+      this.activeLayerId.set(data.activeLayerId || data.layers[0]?.id || '');
+      this.undoStack = [];
+      this.redoStack = [];
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  saveProjectPrompt() {
+    const json = this.saveProjectToJSON();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pixelcraft-project-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  loadProjectPrompt() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const ok = this.loadProjectFromJSON(reader.result as string);
+        if (!ok) alert('Failed to load project: invalid JSON or schema.');
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   }
 }

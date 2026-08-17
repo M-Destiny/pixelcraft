@@ -110,7 +110,14 @@ export class CanvasComponent {
         if (!isCtrlOrMeta) this.svc.activeTool.set('rectangle');
         else this.svc.resizeCanvasPrompt();
         break;
-      case 's': this.svc.activeTool.set('select'); break;
+      case 's':
+        if (isCtrlOrMeta) {
+          e.preventDefault();
+          this.svc.saveProjectPrompt();
+        } else {
+          this.svc.activeTool.set('select');
+        }
+        break;
       case 'h': this.svc.activeTool.set('pan'); break;
       case 'v':
         if (isCtrlOrMeta) this.svc.pasteSelection(this.selectionBox());
@@ -150,6 +157,28 @@ export class CanvasComponent {
         break;
       case 'arrowright':
         if (this.selectionBox()) this.svc.moveSelection(this.selectionBox(), 1, 0);
+        break;
+      case 'b':
+        // Cycle brush size (1 -> 3 -> 5 -> 1)
+        this.svc.cycleBrushSize();
+        break;
+      case 'm':
+        // Flip selection (horizontal by default, Shift+M for vertical)
+        if (this.selectionBox()) {
+          if (e.shiftKey) this.svc.flipSelectionVertical(this.selectionBox());
+          else this.svc.flipSelectionHorizontal(this.selectionBox());
+        }
+        break;
+      case 'o':
+        if (isCtrlOrMeta) {
+          e.preventDefault();
+          this.svc.loadProjectPrompt();
+        }
+        break;
+      case 'g':
+        if (!isCtrlOrMeta) {
+          this.svc.toggleGrid();
+        }
         break;
       case ' ':
         if (this.svc.activeTool() !== 'pan') {
@@ -309,7 +338,8 @@ export class CanvasComponent {
         by = ay + sy * size;
       }
       const color = this.svc.activeColor();
-      this.svc.drawRectangle(ax, ay, bx, by, color, false);
+      // Alt = filled rectangle
+      this.svc.drawRectangle(ax, ay, bx, by, color, e.altKey);
     }
     this.rectAnchor = null;
     this.rectPreview.set(null);
@@ -431,7 +461,7 @@ export class CanvasComponent {
 
   private paintTouch(point: { x: number; y: number }) {
     const color = this.svc.activeTool() === 'eraser' ? 'transparent' : this.svc.activeColor();
-    this.svc.drawPixel(point.x, point.y, color);
+    this.svc.drawBrush(point.x, point.y, this.svc.brushSize(), color);
     this.redraw();
   }
 
@@ -442,7 +472,7 @@ export class CanvasComponent {
     const y = Math.floor((e.clientY - rect.top - this.svc.pan().y) / (this.svc.zoom() / 10));
 
     const color = this.svc.activeTool() === 'eraser' ? 'transparent' : this.svc.activeColor();
-    this.svc.drawPixel(x, y, color);
+    this.svc.drawBrush(x, y, this.svc.brushSize(), color);
     this.redraw();
   }
 

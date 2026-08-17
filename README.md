@@ -10,11 +10,12 @@ A lightweight, self-hosted pixel art editor built with Angular 17. Draw on a con
 
 | Tool | Description |
 |---|---|
-| ✏️ **Pencil** | Draw single pixels on the active layer |
+| ✏️ **Pencil** | Draw pixels on the active layer (1/3/5 px brush) |
 | 🧹 **Eraser** | Erase pixels (set to transparent) |
 | 🪣 **Fill** | Flood-fill a region with the selected color |
 | 💧 **Eyedropper** | Pick a color from the canvas |
-| ⬚ **Select** | Rectangular selection tool |
+| ⬚ **Select** | Rectangular selection tool (move, copy, cut, paste, flip) |
+| ▭ **Rectangle** | Hollow (default) or filled (Alt+drag) rectangle, Shift = square |
 | ✋ **Pan** | Pan/scroll around the canvas |
 | 🔍 **Zoom** | Zoom in/out (1x–32x) |
 
@@ -27,6 +28,7 @@ A lightweight, self-hosted pixel art editor built with Angular 17. Draw on a con
 ### Export
 - PNG export at 1x, 2x, 4x, 8x, 16x scale
 - SVG export (vector, infinite scale)
+- Project save/load to JSON (full layer state round-trip)
 - Direct browser download
 
 ---
@@ -73,16 +75,25 @@ A lightweight, self-hosted pixel art editor built with Angular 17. Draw on a con
 | `I` | Eyedropper (pick color) |
 | `S` | Selection tool |
 | `H` | Pan/hand tool |
+| `R` | Rectangle tool (hollow). **Alt+drag** = filled |
+| `B` | Cycle brush size: 1 → 3 → 5 px |
 | `Z` | Zoom in |
 | `X` | Zoom out |
 | `Ctrl+Z` | Undo |
-| `Ctrl+Shift+Z` | Redo |
+| `Ctrl+Shift+Z` / `Ctrl+Y` | Redo |
+| `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copy / Cut / Paste selection |
 | `Ctrl+E` | Export PNG |
-| `Ctrl+S` | Save project |
-| `Delete` | Clear active layer |
-| `+/-` | Increase/decrease brush size |
+| `Ctrl+S` | Save project as JSON |
+| `Ctrl+O` | Load project from JSON |
+| `Delete` | Clear active layer (or delete selection contents) |
+| `Arrow keys` | Move selection by 1px |
+| `M` | Flip selection horizontally |
+| `Shift+M` | Flip selection vertically |
 | `G` | Toggle grid overlay |
 | `Ctrl+0` | Reset zoom to 100% |
+| `Shift` (in pencil/rect) | Straight line / square constraint |
+| `Alt` (in rectangle) | Filled rectangle |
+| `Space` | Temporary pan tool |
 | `Escape` | Deselect / cancel |
 
 ---
