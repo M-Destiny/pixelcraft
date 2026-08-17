@@ -19,15 +19,25 @@ A lightweight, self-hosted pixel art editor built with Angular 17. Draw on a con
 | ✋ **Pan** | Pan/scroll around the canvas |
 | 🔍 **Zoom** | Zoom in/out (1x–32x) |
 
+### Color Palette
+- 16-color default palette
+- 256-color extended palette mode
+- Custom color picker (hex + color wheel)
+- **Color history/swatches** — recently used colors for quick access
+
 ### Layer Management
 - Add, delete, and reorder layers
 - Toggle layer visibility
 - Adjust per-layer opacity
+- **Layer blend modes** — 12 modes: Normal, Multiply, Screen, Overlay, Darken, Lighten, Color Dodge, Color Burn, Hard Light, Soft Light, Difference, Exclusion
 - Active layer indicator
+- Merge down
+- Duplicate layer
 
 ### Export
 - PNG export at 1x, 2x, 4x, 8x, 16x scale
 - SVG export (vector, infinite scale)
+- **Export presets** — built-in and custom presets saved to localStorage
 - Project save/load to JSON (full layer state round-trip)
 - Direct browser download
 
@@ -82,9 +92,9 @@ A lightweight, self-hosted pixel art editor built with Angular 17. Draw on a con
 | `Ctrl+Z` | Undo |
 | `Ctrl+Shift+Z` / `Ctrl+Y` | Redo |
 | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copy / Cut / Paste selection |
-| `Ctrl+E` | Export PNG |
 | `Ctrl+S` | Save project as JSON |
 | `Ctrl+O` | Load project from JSON |
+| `Ctrl+R` | Resize canvas |
 | `Delete` | Clear active layer (or delete selection contents) |
 | `Arrow keys` | Move selection by 1px |
 | `M` | Flip selection horizontally |
@@ -95,6 +105,7 @@ A lightweight, self-hosted pixel art editor built with Angular 17. Draw on a con
 | `Alt` (in rectangle) | Filled rectangle |
 | `Space` | Temporary pan tool |
 | `Escape` | Deselect / cancel |
+| `?` (Shift+/) | Open keyboard shortcuts help |
 
 ---
 

@@ -116,6 +116,7 @@ LayerPanelComponent ──▶ LayerSignal ────────────�
   - [x] 256-color palette mode
   - [x] Active color indicator
   - [x] Custom color input
+  - [x] Color history/swatches (recent colors)
 - [x] `src/app/components/layer-panel/layer-panel.component.ts`
   - [x] Add layer
   - [x] Delete layer
@@ -125,6 +126,7 @@ LayerPanelComponent ──▶ LayerSignal ────────────�
   - [x] Active layer indicator
   - [x] Merge down
   - [x] Duplicate layer
+  - [x] Layer blend modes (12 modes)
 - [x] `src/app/components/canvas/canvas.component.ts`
   - [x] Grid-based pixel renderer
   - [x] Mouse/touch drawing
@@ -140,6 +142,7 @@ LayerPanelComponent ──▶ LayerSignal ────────────�
   - [x] SVG export
   - [x] Preview thumbnail
   - [x] Download trigger
+  - [x] Export presets (built-in + custom)
 
 ### Phase 4: Services
 - [x] `src/app/services/pixel-art.service.ts` — Signal-based state
@@ -152,10 +155,14 @@ LayerPanelComponent ──▶ LayerSignal ────────────�
   - [x] `brushSize` — 1/3/5 square brush
   - [x] `flipSelection(H|V)` — mirror selection in place
   - [x] `saveProjectToJSON` / `loadProjectFromJSON` — round-trip project state
+  - [x] `colorHistory` — recently used colors (20 max)
+  - [x] `mergeLayers()` with blend mode support
+  - [x] `setLayerBlendMode()` / `setLayerOpacity()`
 - [x] `src/app/services/export.service.ts`
   - [x] `canvasToPNG(scale)` — rasterized export
   - [x] `canvasToSVG()` — vector export
   - [x] `downloadBlob()` — file download helper
+  - [x] Export presets (built-in + custom, localStorage)
 
 ### Phase 5: Deployment
 - [x] `fly.toml` — Fly.io deployment config
@@ -177,7 +184,7 @@ LayerPanelComponent ──▶ LayerSignal ────────────�
 | **v0.1.0** | **Released** | Pencil, Eraser, Fill, Eyedropper, Select, Pan, Layers, PNG/SVG Export |
 | **v0.2.0** | **Released** | Rectangle tool (R), Merge-Down (⇩), Shift-straight line, touch/pinch-zoom, clipboard ops, 16↔256 palette, resize canvas |
 | **v0.3.0** | **Released** | Filled rectangle (Alt+drag), brush size (B cycles 1/3/5), flip selection H/V (M / Shift+M), project save/load JSON (Ctrl+S / Ctrl+O) |
-| **v0.4.0** | **Released** | Keyboard shortcut help modal (?), color history/swatches, onion skinning for animation, improved touch gestures, layer blend modes, export presets |
+|| **v0.4.0** | **Released** | Keyboard shortcut help modal (?), color history/swatches, layer blend modes, export presets |
 
 ## 6. File Structure
 
