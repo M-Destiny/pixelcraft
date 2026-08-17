@@ -161,7 +161,9 @@ LayerPanelComponent ──▶ LayerSignal ────────────�
 - [x] `fly.toml` — Fly.io deployment config
 - [x] `railway.json` — Railway deployment config
 - [x] `render.yaml` — Render deployment config
-- [ ] Docker container (optional)
+- [x] `Dockerfile` + `nginx.conf` — Multi-stage Docker build with nginx
+- [x] `.github/workflows/ci.yml` — GitHub Actions CI/CD
+- [x] `LICENSE` — MIT license
 
 ## 5. Milestones
 
@@ -189,6 +191,12 @@ pixelcraft/
 ├── fly.toml
 ├── railway.json
 ├── render.yaml
+├── Dockerfile
+├── nginx.conf
+├── LICENSE
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 └── src/
     ├── main.ts
     ├── index.html
