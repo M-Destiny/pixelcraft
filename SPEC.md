@@ -175,8 +175,9 @@ LayerPanelComponent ──▶ LayerSignal ────────────�
 | Phase 4: Services | ✅ Complete | PixelArtService (Signals), ExportService |
 | Phase 5: Deployment | ✅ Complete | Fly.io, Railway, Render configs |
 | **v0.1.0** | **Released** | Pencil, Eraser, Fill, Eyedropper, Select, Pan, Layers, PNG/SVG Export |
-| **v0.2.0** | In progress | Rectangle tool (R), Merge-Down (⇩), Shift-straight line, touch/pinch-zoom, clipboard ops, 16↔256 palette, resize canvas |
-| **v0.3.0** | In progress | Filled rectangle (Alt+drag), brush size (B cycles 1/3/5), flip selection H/V (M / Shift+M), project save/load JSON (Ctrl+S / Ctrl+O) |
+| **v0.2.0** | **Released** | Rectangle tool (R), Merge-Down (⇩), Shift-straight line, touch/pinch-zoom, clipboard ops, 16↔256 palette, resize canvas |
+| **v0.3.0** | **Released** | Filled rectangle (Alt+drag), brush size (B cycles 1/3/5), flip selection H/V (M / Shift+M), project save/load JSON (Ctrl+S / Ctrl+O) |
+| **v0.4.0** | **Released** | Keyboard shortcut help modal (?), color history/swatches, onion skinning for animation, improved touch gestures, layer blend modes, export presets |
 
 ## 6. File Structure
 

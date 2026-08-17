@@ -4,11 +4,12 @@ import { ColorPaletteComponent } from './components/color-palette/color-palette.
 import { CanvasComponent } from './components/canvas/canvas.component';
 import { LayerPanelComponent } from './components/layer-panel/layer-panel.component';
 import { ExportPanelComponent } from './components/export-panel/export-panel.component';
+import { HelpModalComponent } from './components/help-modal/help-modal.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [ToolbarComponent, ColorPaletteComponent, CanvasComponent, LayerPanelComponent, ExportPanelComponent],
+  imports: [ToolbarComponent, ColorPaletteComponent, CanvasComponent, LayerPanelComponent, ExportPanelComponent, HelpModalComponent],
   template: `
     <div class="flex flex-col h-screen bg-[#1a1a2e]">
       <app-toolbar class="flex-shrink-0" />
@@ -24,6 +25,7 @@ import { ExportPanelComponent } from './components/export-panel/export-panel.com
           <app-export-panel />
         </div>
       </div>
+      <app-help-modal />
     </div>
   `,
 })
